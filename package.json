@@ -1,0 +1,16 @@
+{
+  "name": "raymond-algorithm-simulator",
+  "version": "1.0.0",
+  "description": "Interactive simulation of Raymond's Tree-Based Mutual Exclusion Algorithm",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "dev": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "start": "npm run dev",
+    "start:frontend": "npm run dev:frontend"
+  },
+  "keywords": ["distributed-systems", "mutual-exclusion", "raymond-algorithm", "simulation"],
+  "author": "",
+  "license": "MIT"
+}

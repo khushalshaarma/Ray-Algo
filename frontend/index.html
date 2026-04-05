@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raymond's Algorithm Simulator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/d3@7/dist/d3.min.js"></script>
+  <style>
+:root {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-card: rgba(20, 20, 30, 0.95);
+  --bg-glass: rgba(255, 255, 255, 0.03);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --accent-cyan: #00d9ff;
+  --accent-green: #00ff88;
+  --accent-purple: #a855f7;
+  --accent-orange: #ff9f43;
+  --accent-red: #ff6b6b;
+  --glow-cyan: 0 0 25px rgba(0, 217, 255, 0.6);
+  --glow-green: 0 0 25px rgba(0, 255, 136, 0.6);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse at 50% 0%, rgba(0, 217, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(168, 85, 247, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+}
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+.header {
+  background: rgba(10, 10, 15, 0.9);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 2rem;
+}
+.header-content {
+  max-width: 1900px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.logo { display: flex; align-items: center; gap: 0.75rem; }
+.logo-icon { font-size: 2.5rem; }
+.logo h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-card);
+  border-radius: 25px;
+  border: 1px solid var(--border-color);
+  font-size: 0.875rem;
+}
+.status-dot { width: 10px; height: 10px; border-radius: 50%; }
+.status-dot.connected { background: var(--accent-green); box-shadow: 0 0 10px var(--accent-green); animation: pulse 2s infinite; }
+.status-dot.disconnected { background: var(--accent-red); }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.main-content {
+  display: grid;
+  grid-template-columns: 350px 1fr 400px;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 2000px;
+  margin: 0 auto;
+  flex: 1;
+  width: 100%;
+}
+.panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 1.5rem;
+}
+.panel h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.panel h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--accent-cyan);
+}
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border: none;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+.btn-primary { background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green)); color: #0a0a0f; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: var(--glow-cyan); }
+.btn-secondary { background: var(--bg-glass); color: var(--text-primary); border: 1px solid var(--border-color); }
+.btn-secondary:hover { background: rgba(255, 255, 255, 0.1); }
+.btn-danger { background: rgba(255, 107, 107, 0.1); color: var(--accent-red); border: 1px solid rgba(255, 107, 107, 0.3); }
+.node-selector {
+  margin: 1rem 0;
+  padding: 1.25rem;
+  background: var(--bg-glass);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+}
+.node-selector label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.node-selector select {
+  width: 100%;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.node-selector select:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.2);
+}
+.action-buttons {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.action-buttons .btn {
+  flex: 1;
+  padding: 0.75rem;
+  font-size: 0.85rem;
+}
+.node-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.node-card {
+  padding: 1rem;
+  background: var(--bg-glass);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+.node-card:hover {
+  border-color: var(--accent-cyan);
+  transform: translateY(-3px);
+  box-shadow: 0 5px 20px rgba(0, 217, 255, 0.2);
+}
+.node-card.selected {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 217, 255, 0.15);
+  box-shadow: var(--glow-cyan);
+}
+.node-card.has-token { border-color: var(--accent-cyan); background: rgba(0, 217, 255, 0.1); }
+.node-card.in-cs { border-color: var(--accent-green); background: rgba(0, 255, 136, 0.1); box-shadow: var(--glow-green); }
+.node-card.requesting { border-color: var(--accent-orange); background: rgba(255, 159, 67, 0.1); }
+.node-label { font-size: 1.5rem; font-weight: 700; }
+.node-status { font-size: 0.625rem; color: var(--text-muted); margin-top: 0.25rem; text-transform: uppercase; }
+.node-token { font-size: 0.625rem; color: var(--accent-cyan); margin-top: 0.25rem; font-weight: 600; }
+.metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+.metric-card { background: var(--bg-glass); border-radius: 12px; padding: 1rem; text-align: center; }
+.metric-value { font-size: 2rem; font-weight: 700; color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace; }
+.metric-label { font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase; margin-top: 0.25rem; letter-spacing: 0.05em; }
+.visualization { flex: 1; min-height: 600px; display: flex; flex-direction: column; }
+.tree-svg { width: 100%; height: 100%; min-height: 550px; }
+.tree-node { cursor: pointer; transition: all 0.3s ease; }
+.tree-node:hover circle { filter: brightness(1.3); }
+.tree-link { fill: none; stroke: url(#lineGradient); stroke-width: 4; opacity: 0.8; }
+.token-label { font-size: 12px; fill: var(--accent-cyan); font-weight: 700; }
+.cs-label { font-size: 11px; fill: var(--accent-green); font-weight: 700; }
+.queue-badge { fill: var(--accent-purple); stroke: #fff; stroke-width: 2; }
+.queue-text { font-size: 12px; fill: #fff; font-weight: 700; }
+.log-list { max-height: 500px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
+.log-item { display: flex; gap: 0.75rem; padding: 0.75rem; background: var(--bg-glass); border-radius: 10px; font-size: 0.8rem; border-left: 4px solid var(--accent-cyan); }
+.log-time { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; white-space: nowrap; font-size: 0.7rem; }
+.log-source { color: var(--accent-cyan); font-weight: 700; min-width: 50px; }
+.log-message { color: var(--text-secondary); flex: 1; }
+.queue-list { max-height: 500px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; }
+.queue-item { background: var(--bg-glass); border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; }
+.queue-item.token-holder { border-color: var(--accent-cyan); background: rgba(0, 217, 255, 0.05); }
+.queue-item.in-cs { border-color: var(--accent-green); background: rgba(0, 255, 136, 0.05); }
+.queue-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.state-badge { font-size: 0.625rem; padding: 0.3rem 0.6rem; border-radius: 6px; text-transform: uppercase; font-weight: 700; }
+.state-badge.idle { background: rgba(255, 255, 255, 0.1); color: var(--text-secondary); }
+.state-badge.held { background: rgba(0, 217, 255, 0.2); color: var(--accent-cyan); }
+.state-badge.wanted { background: rgba(255, 159, 67, 0.2); color: var(--accent-orange); }
+.state-badge.in-cs { background: rgba(0, 255, 136, 0.2); color: var(--accent-green); }
+.legend { display: flex; gap: 1.5rem; margin-bottom: 1rem; padding: 1rem; background: var(--bg-glass); border-radius: 12px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--text-secondary); }
+.legend-dot { width: 14px; height: 14px; border-radius: 50%; }
+.legend-dot.token { background: var(--accent-cyan); box-shadow: 0 0 8px var(--accent-cyan); }
+.legend-dot.in-cs { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+.legend-dot.wanted { background: var(--accent-orange); }
+.legend-dot.queue { background: var(--accent-purple); }
+.legend-dot.root { background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green)); }
+.tabs { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
+.tab { flex: 1; padding: 0.875rem; background: var(--bg-glass); border: 1px solid var(--border-color); border-radius: 12px; color: var(--text-secondary); font-family: inherit; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; font-weight: 500; }
+.tab:hover { background: rgba(255, 255, 255, 0.05); }
+.tab.active { background: linear-gradient(135deg, rgba(0, 217, 255, 0.15), rgba(0, 255, 136, 0.15)); border-color: var(--accent-cyan); color: var(--text-primary); font-weight: 600; }
+.footer { text-align: center; padding: 1.25rem; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid var(--border-color); margin-top: auto; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+.empty-message { text-align: center; color: var(--text-muted); padding: 2rem; font-style: italic; }
+.cs-indicator { margin: 1rem 0; padding: 1.25rem; background: rgba(0, 255, 136, 0.15); border: 2px solid rgba(0, 255, 136, 0.4); border-radius: 12px; text-align: center; color: var(--accent-green); font-weight: 700; font-size: 1.1rem; }
+.token-holder-info { margin-top: 1rem; padding: 1.25rem; background: rgba(0, 217, 255, 0.1); border: 2px solid rgba(0, 217, 255, 0.3); border-radius: 12px; }
+.token-holder-info .label { font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+.token-holder-info .value { font-size: 1.5rem; font-weight: 700; color: var(--accent-cyan); margin-top: 0.25rem; }
+.tree-structure-info { margin-top: 1rem; padding: 1rem; background: var(--bg-glass); border-radius: 12px; border: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-muted); line-height: 1.6; }
+.tree-structure-info .tree-line { font-family: 'JetBrains Mono', monospace; color: var(--accent-cyan); }
+@media (max-width: 1200px) { .main-content { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const API_BASE = 'http://localhost:3001/api';
+
+function App() {
+  const [state, setState] = useState({ nodes: [], edges: [], tokenHolder: null, inCriticalSection: null, logs: [], totalMessages: 0 });
+  const [metrics, setMetrics] = useState({ totalMessages: 0, totalRequests: 0, averageWaitingTime: 0, nodesInQueue: 0 });
+  const [isConnected, setIsConnected] = useState(false);
+  const [activeTab, setActiveTab] = useState('logs');
+  const [selectedNode, setSelectedNode] = useState(null);
+
+  const fetchState = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/state`);
+      const data = await res.json();
+      setState(data);
+      setIsConnected(true);
+    } catch (err) {
+      setIsConnected(false);
+    }
+  }, []);
+
+  const fetchMetrics = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/metrics`);
+      const data = await res.json();
+      setMetrics(data);
+    } catch (err) {}
+  }, []);
+
+  useEffect(() => {
+    fetchState();
+    fetchMetrics();
+    const interval = setInterval(() => { fetchState(); fetchMetrics(); }, 300);
+    return () => clearInterval(interval);
+  }, [fetchState, fetchMetrics]);
+
+  const requestCS = async (nodeId) => {
+    setSelectedNode(nodeId);
+    try {
+      await fetch(`${API_BASE}/request/${nodeId}`, { method: 'POST' });
+    } catch (err) { console.error('Request CS error:', err); }
+    fetchState();
+    fetchMetrics();
+  };
+
+  const releaseCS = async (nodeId) => {
+    try {
+      await fetch(`${API_BASE}/release/${nodeId}`, { method: 'POST' });
+    } catch (err) { console.error('Release CS error:', err); }
+    fetchState();
+    fetchMetrics();
+  };
+
+  const reset = async () => { 
+    try {
+      await fetch(`${API_BASE}/reset`, { method: 'POST' });
+    } catch (err) { 
+      console.error('Reset error:', err); 
+      alert('Error connecting to server! Make sure backend is running on port 3001');
+    }
+    setSelectedNode(null);
+    fetchState();
+    fetchMetrics();
+  };
+  const clearLogs = () => { fetch(`${API_BASE}/clear-logs`, { method: 'POST' }); };
+
+  const getNodeStateClass = (node) => {
+    if (node.state === 'IN_CS') return 'in-cs';
+    if (node.hasToken) return 'has-token';
+    if (node.state === 'WANTED') return 'requesting';
+    return '';
+  };
+
+  const handleNodeClick = (node) => {
+    if (node.state === 'IN_CS') {
+      releaseCS(node.id);
+    } else {
+      requestCS(node.id);
+    }
+  };
+
+  const getNodeDescription = (node) => {
+    if (node.id === state.root || state.root === null) return '';
+    const parent = state.nodes.find(n => n.id === node.parent);
+    return parent ? `Child of ${parent.label}` : '';
+  };
+
+  return (
+    <div className="app">
+      <header className="header">
+        <div className="header-content">
+          <div className="logo">
+            <span className="logo-icon">🌳</span>
+            <h1>Raymond's Algorithm Simulator</h1>
+          </div>
+          <div className="connection-status">
+            <span className={`status-dot ${isConnected ? 'connected' : 'disconnected'}`}></span>
+            <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
+          </div>
+        </div>
+      </header>
+
+      <main className="main-content">
+        <div>
+          <div className="panel">
+            <h3>Controls</h3>
+            <button className="btn btn-primary" onClick={reset}>🌳 Create Tree</button>
+            <button className="btn btn-secondary" onClick={clearLogs}>🗑️ Clear Logs</button>
+            
+            {state.inCriticalSection && (
+              <div className="cs-indicator">
+                🔒 Critical Section: Node {state.inCriticalSection.label}
+              </div>
+            )}
+
+            <div className="node-selector">
+              <label>Select Node to Request Critical Section:</label>
+              <select 
+                value={selectedNode || ''} 
+                onChange={(e) => setSelectedNode(e.target.value || null)}
+              >
+                <option value="">-- Select a Node --</option>
+                {state.nodes.map(node => (
+                  <option key={node.id} value={node.id}>
+                    Node {node.label} {node.hasToken ? '(🔑 HAS TOKEN)' : ''} {node.state === 'IN_CS' ? '(🔒 IN CS)' : ''}
+                  </option>
+                ))}
+              </select>
+              <div className="action-buttons">
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => selectedNode && requestCS(selectedNode)}
+                  disabled={!selectedNode}
+                  style={{ opacity: selectedNode ? 1 : 0.5 }}
+                >
+                  📤 Request CS
+                </button>
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => selectedNode && releaseCS(selectedNode)}
+                  disabled={!selectedNode}
+                  style={{ opacity: selectedNode ? 1 : 0.5 }}
+                >
+                  📥 Release CS
+                </button>
+              </div>
+            </div>
+
+            <h2>Node Status</h2>
+            <div className="node-cards">
+              {state.nodes.map(node => (
+                <div 
+                  key={node.id} 
+                  className={`node-card ${getNodeStateClass(node)} ${selectedNode === node.id ? 'selected' : ''}`}
+                  onClick={() => { setSelectedNode(node.id); handleNodeClick(node); }}
+                >
+                  <div className="node-label">{node.label}</div>
+                  <div className="node-status">{node.state.replace('_', ' ')}</div>
+                  {node.hasToken && <div className="node-token">🔑 TOKEN</div>}
+                  {node.requestQueue.length > 0 && <div className="node-token">📊 Q: {node.requestQueue.length}</div>}
+                </div>
+              ))}
+            </div>
+
+            <div className="token-holder-info">
+              <div className="label">Current Token Holder</div>
+              <div className="value">
+                {state.tokenHolder ? `Node ${state.nodes.find(n => n.id === state.tokenHolder)?.label}` : 'None'}
+              </div>
+            </div>
+
+            <div className="tree-structure-info">
+              <div className="tree-line">Tree Structure:</div>
+              <div className="tree-line">      A (ROOT)</div>
+              <div className="tree-line">     / \</div>
+              <div className="tree-line">    B   C</div>
+              <div className="tree-line">   / \ / \</div>
+              <div className="tree-line">  D  E F  G</div>
+            </div>
+          </div>
+
+          <div className="panel" style={{ marginTop: '1rem' }}>
+            <h3>Performance Metrics</h3>
+            <div className="metrics-grid">
+              <div className="metric-card"><div className="metric-value">{metrics.totalMessages}</div><div className="metric-label">Messages</div></div>
+              <div className="metric-card"><div className="metric-value">{metrics.totalRequests}</div><div className="metric-label">Requests</div></div>
+              <div className="metric-card"><div className="metric-value">{(metrics.averageWaitingTime / 1000).toFixed(2)}s</div><div className="metric-label">Avg Wait</div></div>
+              <div className="metric-card"><div className="metric-value">{metrics.nodesInQueue}</div><div className="metric-label">In Queue</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="panel visualization">
+          <h3>Distributed System Tree (Raymond's Algorithm)</h3>
+          <div className="legend">
+            <div className="legend-item"><span className="legend-dot token"></span><span>Token</span></div>
+            <div className="legend-item"><span className="legend-dot in-cs"></span><span>In CS</span></div>
+            <div className="legend-item"><span className="legend-dot wanted"></span><span>Requesting</span></div>
+            <div className="legend-item"><span className="legend-dot queue"></span><span>In Queue</span></div>
+            <div className="legend-item"><span className="legend-dot root"></span><span>Root</span></div>
+          </div>
+          <TreeVisualization 
+            nodes={state.nodes} 
+            edges={state.edges} 
+            tokenHolder={state.tokenHolder}
+            root={state.root}
+            selectedNode={selectedNode}
+            onNodeClick={(id) => { 
+              setSelectedNode(id); 
+              const n = state.nodes.find(n => n.id === id); 
+              if (n) handleNodeClick(n); 
+            }} 
+          />
+        </div>
+
+        <div className="panel">
+          <div className="tabs">
+            <button className={`tab ${activeTab === 'logs' ? 'active' : ''}`} onClick={() => setActiveTab('logs')}>📋 Logs ({state.logs.length})</button>
+            <button className={`tab ${activeTab === 'queue' ? 'active' : ''}`} onClick={() => setActiveTab('queue')}>📊 Queues</button>
+          </div>
+          {activeTab === 'logs' ? <LogPanel logs={state.logs} /> : <QueuePanel nodes={state.nodes} tokenHolder={state.tokenHolder} />}
+        </div>
+      </main>
+
+      <footer className="footer">
+        <p>Raymond's Tree-Based Mutual Exclusion Algorithm Simulation</p>
+        <p style={{ marginTop: '0.25rem', opacity: 0.6 }}>Distributed Systems Visualization Tool</p>
+      </footer>
+    </div>
+  );
+}
+
+function TreeVisualization({ nodes, edges, tokenHolder, root, selectedNode, onNodeClick }) {
+  const svgRef = useRef(null);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!svgRef.current || !containerRef.current || nodes.length === 0) return;
+    
+    const svg = d3.select(svgRef.current);
+    svg.selectAll('*').remove();
+    
+    const width = containerRef.current.clientWidth || 600;
+    const height = 550;
+    
+    svg.attr('viewBox', `0 0 ${width} ${height}`);
+    
+    const defs = svg.append('defs');
+    
+    const gradient = defs.append('linearGradient').attr('id', 'lineGradient').attr('x1', '0%').attr('y1', '0%').attr('x2', '100%').attr('y2', '0%');
+    gradient.append('stop').attr('offset', '0%').attr('stop-color', '#00d9ff');
+    gradient.append('stop').attr('offset', '100%').attr('stop-color', '#00ff88');
+    
+    const glow = defs.append('filter').attr('id', 'glow').attr('x', '-50%').attr('y', '-50%').attr('width', '200%').attr('height', '200%');
+    glow.append('feGaussianBlur').attr('stdDeviation', '6').attr('result', 'coloredBlur');
+    const merge = glow.append('feMerge');
+    merge.append('feMergeNode').attr('in', 'coloredBlur');
+    merge.append('feMergeNode').attr('in', 'SourceGraphic');
+
+    const glowGreen = defs.append('filter').attr('id', 'glowGreen').attr('x', '-50%').attr('y', '-50%').attr('width', '200%').attr('height', '200%');
+    glowGreen.append('feGaussianBlur').attr('stdDeviation', '8').attr('result', 'coloredBlur');
+    const mergeGreen = glowGreen.append('feMerge');
+    mergeGreen.append('feMergeNode').attr('in', 'coloredBlur');
+    mergeGreen.append('feMergeNode').attr('in', 'SourceGraphic');
+
+    // Build proper hierarchy with root at top
+    const hierarchyData = buildHierarchy(nodes, edges);
+    if (!hierarchyData) return;
+
+    const rootNode = d3.hierarchy(hierarchyData);
+    const treeLayout = d3.tree().size([width - 150, height - 120]);
+    treeLayout(rootNode);
+
+    const g = svg.append('g').attr('transform', `translate(75, 60)`);
+
+    // Draw edges first
+    g.selectAll('.tree-link')
+      .data(rootNode.links())
+      .enter()
+      .append('path')
+      .attr('class', 'tree-link')
+      .attr('d', d3.linkVertical()
+        .x(d => d.x)
+        .y(d => d.y)
+      )
+      .attr('stroke', 'url(#lineGradient)')
+      .attr('stroke-width', 4)
+      .attr('opacity', 0.8);
+
+    // Draw nodes
+    const nodeGroups = g.selectAll('.tree-node')
+      .data(rootNode.descendants())
+      .enter()
+      .append('g')
+      .attr('class', 'tree-node')
+      .attr('transform', d => `translate(${d.x}, ${d.y})`)
+      .on('click', (e, d) => { e.stopPropagation(); onNodeClick(d.data.id); });
+
+    // Node circles
+    nodeGroups.append('circle')
+      .attr('r', d => {
+        const node = nodes.find(n => n.id === d.data.id);
+        return node?.hasToken ? 45 : 40;
+      })
+      .attr('fill', d => {
+        const node = nodes.find(n => n.id === d.data.id);
+        if (node?.state === 'IN_CS') return '#00ff88';
+        if (node?.hasToken) return '#00d9ff';
+        if (node?.state === 'WANTED') return '#ff9f43';
+        if (node?.requestQueue?.length > 0) return '#a855f7';
+        return '#2a2a3e';
+      })
+      .attr('stroke', d => {
+        const node = nodes.find(n => n.id === d.data.id);
+        if (d.data.id === selectedNode) return '#ffffff';
+        if (node?.hasToken) return '#00d9ff';
+        if (node?.state === 'IN_CS') return '#00ff88';
+        if (node?.state === 'WANTED') return '#ff9f43';
+        if (d.data.id === root) return '#00ff88';
+        return '#4a4a5e';
+      })
+      .attr('stroke-width', d => d.data.id === selectedNode || d.data.id === root ? 4 : 3)
+      .style('filter', d => {
+        const node = nodes.find(n => n.id === d.data.id);
+        if (node?.state === 'IN_CS') return 'url(#glowGreen)';
+        if (node?.hasToken) return 'url(#glow)';
+        return 'none';
+      });
+
+    // Node labels
+    nodeGroups.append('text')
+      .attr('dy', '0.35em')
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#fff')
+      .attr('font-size', '18px')
+      .attr('font-weight', '700')
+      .text(d => d.data.label);
+
+    // Queue badge
+    nodeGroups.filter(d => {
+      const node = nodes.find(n => n.id === d.data.id);
+      return node?.requestQueue?.length > 0;
+    }).append('circle')
+      .attr('cx', 32).attr('cy', -32).attr('r', 14)
+      .attr('class', 'queue-badge');
+
+    nodeGroups.filter(d => {
+      const node = nodes.find(n => n.id === d.data.id);
+      return node?.requestQueue?.length > 0;
+    }).append('text')
+      .attr('cx', 32).attr('cy', -32).attr('dy', '0.35em')
+      .attr('text-anchor', 'middle').attr('class', 'queue-text')
+      .text(d => {
+        const node = nodes.find(n => n.id === d.data.id);
+        return node?.requestQueue?.length || 0;
+      });
+
+    // Token indicator
+    nodeGroups.filter(d => {
+      const node = nodes.find(n => n.id === d.data.id);
+      return node?.hasToken;
+    }).append('text')
+      .attr('dy', -58).attr('text-anchor', 'middle')
+      .attr('fill', '#00d9ff').attr('font-size', '13px').attr('font-weight', '700')
+      .text('🔑 TOKEN');
+
+    // In CS indicator
+    nodeGroups.filter(d => {
+      const node = nodes.find(n => n.id === d.data.id);
+      return node?.state === 'IN_CS';
+    }).append('text')
+      .attr('dy', 62).attr('text-anchor', 'middle')
+      .attr('fill', '#00ff88').attr('font-size', '12px').attr('font-weight', '700')
+      .text('🔒 IN CS');
+
+    // Requesting indicator
+    nodeGroups.filter(d => {
+      const node = nodes.find(n => n.id === d.data.id);
+      return node?.state === 'WANTED';
+    }).append('text')
+      .attr('dy', 62).attr('text-anchor', 'middle')
+      .attr('fill', '#ff9f43').attr('font-size', '11px').attr('font-weight', '600')
+      .text('⏳ REQUESTING');
+
+    // Root indicator
+    nodeGroups.filter(d => d.data.id === root)
+      .append('text')
+      .attr('dy', 62).attr('text-anchor', 'middle')
+      .attr('fill', '#00ff88').attr('font-size', '10px').attr('font-weight', '600')
+      .text('ROOT');
+
+  }, [nodes, edges, tokenHolder, root, selectedNode, onNodeClick]);
+
+  const buildHierarchy = (nodes, edges) => {
+    if (nodes.length === 0) return null;
+    
+    const nodeMap = new Map();
+    nodes.forEach(n => nodeMap.set(n.id, { ...n, children: [] }));
+    
+    edges.forEach(edge => {
+      const parent = nodeMap.get(edge.source);
+      const child = nodeMap.get(edge.target);
+      if (parent && child) {
+        parent.children.push(child);
+      }
+    });
+    
+    let rootNode = null;
+    nodeMap.forEach(node => { if (!node.parent) rootNode = node; });
+    
+    return rootNode;
+  };
+
+  return (
+    <div ref={containerRef} style={{ width: '100%', height: '100%', minHeight: '550px', position: 'relative' }}>
+      <svg ref={svgRef} className="tree-svg" style={{ minHeight: '550px' }}></svg>
+      {nodes.length === 0 && (
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', color: 'rgba(255, 255, 255, 0.4)' }}>
+          <p style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🌳 No tree structure</p>
+          <p>Click "Create Tree" to generate a sample tree</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LogPanel({ logs }) {
+  const listRef = useRef(null);
+  
+  useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+  }, [logs]);
+
+  const formatTime = (ts) => {
+    const d = new Date(ts);
+    return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}.${d.getMilliseconds().toString().padStart(3,'0')}`;
+  };
+
+  const getSourceColor = (source) => {
+    if (source === 'System') return '#a855f7';
+    if (source === 'ERROR') return '#ff6b6b';
+    return '#00d9ff';
+  };
+
+  return (
+    <div className="log-list" ref={listRef}>
+      {logs.length === 0 ? (
+        <div className="empty-message">No logs yet. Request critical section to see algorithm execution.</div>
+      ) : (
+        logs.slice(-100).map((log, i) => (
+          <div key={log.id || i} className="log-item">
+            <span className="log-time">{formatTime(log.timestamp)}</span>
+            <span className="log-source" style={{ color: getSourceColor(log.source) }}>[{log.source}]</span>
+            <span className="log-message">{log.message}</span>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function QueuePanel({ nodes, tokenHolder }) {
+  return (
+    <div className="queue-list">
+      {nodes.length === 0 ? (
+        <div className="empty-message">No nodes in system</div>
+      ) : (
+        nodes.map(node => (
+          <div key={node.id} className={`queue-item ${node.id === tokenHolder ? 'token-holder' : ''} ${node.state === 'IN_CS' ? 'in-cs' : ''}`}>
+            <div className="queue-header">
+              <span style={{ fontWeight: '700', fontSize: '1.1rem' }}>Node {node.label}</span>
+              <span className={`state-badge ${node.state.toLowerCase().replace('_', '-')}`}>{node.state.replace('_', ' ')}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Queue:</span>
+              {node.requestQueue.length === 0 ? (
+                <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>empty</span>
+              ) : (
+                node.requestQueue.map((r, i) => {
+                  const reqNode = nodes.find(n => n.id === r.nodeId);
+                  return <span key={i} style={{ background: 'var(--bg-secondary)', padding: '0.25rem 0.6rem', borderRadius: '8px', fontSize: '0.75rem', border: '1px solid var(--border-color)', marginRight: '0.25rem' }}>{reqNode?.label || r.nodeId}</span>;
+                })
+              )}
+            </div>
+            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Holder: {node.holder ? nodes.find(n => n.id === node.holder)?.label : 'None'} | Queue: {node.requestQueue.length}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

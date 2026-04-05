@@ -1,0 +1,17 @@
+{
+  "name": "raymond-algorithm-backend",
+  "version": "1.0.0",
+  "description": "Backend server for Raymond's Algorithm Simulator",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "uuid": "^9.0.0"
+  }
+}
