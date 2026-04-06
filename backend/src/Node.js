@@ -1,4 +1,6 @@
-import { v4 as uuidv4 } from 'uuid';
+function generateId() {
+  return 'node_' + Math.random().toString(36).substr(2, 9);
+}
 
 export const NodeState = {
   IDLE: 'IDLE',
